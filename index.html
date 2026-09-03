@@ -26,12 +26,12 @@
         .form-group { margin-bottom: 15px; }
         label { font-weight: bold; display: block; margin-bottom: 5px; font-size: 0.9rem; }
         
-        /* Form Input khusus Keyboard HP (Support Minus & Titik) */
+        /* Form Input Khusus Keyboard HP (Pattern Regex Diperbaiki) */
         input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; }
         
         .result-box { background: #e9ecef; padding: 15px; border-radius: 8px; text-align: center; margin-top: 15px; font-weight: bold; color: #212529; }
         
-        /* KUNCI PERBAIKAN PETA: Ukuran pasti dan Z-Index */
+        /* Area Peta */
         #map { 
             height: 350px; 
             width: 100%; 
@@ -52,22 +52,22 @@
     <div style="display: flex; gap: 10px;">
         <div class="form-group" style="flex: 1;">
             <label>Latitude A (Saya):</label>
-            <input type="text" inputmode="decimal" pattern="[0-9.-]*" id="latA" placeholder="Contoh: -6.200000">
+            <input type="text" inputmode="decimal" pattern="[\-0-9\.]*" id="latA" placeholder="Contoh: -6.200000">
         </div>
         <div class="form-group" style="flex: 1;">
             <label>Longitude A (Saya):</label>
-            <input type="text" inputmode="decimal" pattern="[0-9.-]*" id="lonA" placeholder="Contoh: 106.816666">
+            <input type="text" inputmode="decimal" pattern="[\-0-9\.]*" id="lonA" placeholder="Contoh: 106.816666">
         </div>
     </div>
 
     <div style="display: flex; gap: 10px;">
         <div class="form-group" style="flex: 1;">
             <label>Latitude B (Tujuan):</label>
-            <input type="text" inputmode="decimal" pattern="[0-9.-]*" id="latB" placeholder="Contoh: -6.917464">
+            <input type="text" inputmode="decimal" pattern="[\-0-9\.]*" id="latB" placeholder="Contoh: -6.917464">
         </div>
         <div class="form-group" style="flex: 1;">
             <label>Longitude B (Tujuan):</label>
-            <input type="text" inputmode="decimal" pattern="[0-9.-]*" id="lonB" placeholder="Contoh: 107.619123">
+            <input type="text" inputmode="decimal" pattern="[\-0-9\.]*" id="lonB" placeholder="Contoh: 107.619123">
         </div>
     </div>
 
@@ -83,20 +83,24 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    let map, markerA, markerB, polyline;
+    // DEKLARASI VARIABEL GLOBAL (Mencegah Uncaught ReferenceError)
+    let map = null;
+    let markerA = null;
+    let markerB = null;
+    let polyline = null;
 
-    // Inisialisasi Peta saat DOM Siap
+    // Inisialisasi Peta setelah DOM Siap
     document.addEventListener("DOMContentLoaded", function() {
         map = L.map('map').setView([-6.200000, 106.816666], 10);
         
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    attribution: '© OpenStreetMap © CARTO',
-    subdomains: 'abcd',
-    maxZoom: 19
-    }).addTo(map);
+        // Sumber Peta CartoDB (Sangat Stabil & Cepat)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap © CARTO',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
 
-        // Paksa render peta ulang agar ubin peta (tiles) dimuat sempurna di PWA HP
-        setTimeout(() => { map.invalidateSize(); }, 500);
+        setTimeout(() => { if (map) map.invalidateSize(); }, 500);
     });
 
     function getLocation() {
@@ -137,8 +141,9 @@
         const latB = parseFloat(document.getElementById('latB').value);
         const lonB = parseFloat(document.getElementById('lonB').value);
 
+        // VALIDASI KOORDINAT (Mencegah Error Cannot Read Properties of Null)
         if (isNaN(latA) || isNaN(lonA) || isNaN(latB) || isNaN(lonB)) {
-            alert("Harap isi seluruh koordinat dengan benar!");
+            alert("Harap isi seluruh input Latitude dan Longitude dengan angka yang valid!");
             return;
         }
 
@@ -149,21 +154,24 @@
             (${distance.km.toFixed(2)} Km)
         `;
 
+        // Hapus penanda lama jika ada
         if (markerA) map.removeLayer(markerA);
         if (markerB) map.removeLayer(markerB);
         if (polyline) map.removeLayer(polyline);
 
-        markerA = L.marker([latA, lonA]).addTo(map).bindPopup("Titik A").openPopup();
-        markerB = L.marker([latB, lonB]).addTo(map).bindPopup("Titik B");
+        // Tambah penanda baru
+        markerA = L.marker([latA, lonA]).addTo(map).bindPopup("Titik A (Saya)").openPopup();
+        markerB = L.marker([latB, lonB]).addTo(map).bindPopup("Titik B (Tujuan)");
 
+        // Buat garis lurus
         polyline = L.polyline([[latA, lonA], [latB, lonB]], {color: 'red', weight: 4}).addTo(map);
+        
+        // Sesuaikan tampilan peta ke garis
         map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
-
-        // Memastikan ukuran peta ter-update saat tombol ditekan
         map.invalidateSize();
     }
 
-    // Registrasi Service Worker PWA
+    // Service Worker PWA
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
