@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator Jarak GPS - MonteBaok</title>
+
+    <meta name="theme-color" content="#0d6efd">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="GPS Distance">
+    
+    <link rel="manifest" href="manifest.json">
+    
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/854/854878.png">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #f4f6f9; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; }
+        .btn { background-color: #0d6efd; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; width: 100%; font-size: 16px; margin-bottom: 15px; }
+        .btn:hover { background-color: #0b5ed7; }
+        .form-group { margin-bottom: 15px; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; }
+        input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        .result-box { background: #e9ecef; padding: 15px; border-radius: 8px; text-align: center; margin-top: 15px; font-weight: bold; color: #212529; }
+        #map { height: 350px; border-radius: 8px; margin-top: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>📍 Kalkulator Jarak GPS (Haversine)</h2>
+    
+    <button class="btn" onclick="getLocation()">📡 Dapatkan Lokasi Saya Saat Ini</button>
+
+    <div class="row" style="display: flex; gap: 10px;">
+        <div class="form-group" style="flex: 1;">
+            <label>Latitude A (Saya):</label>
+            <input type="number" step="any" id="latA" placeholder="-6,331870716422985">
+        </div>
+        <div class="form-group" style="flex: 1;">
+            <label>Longitude A (Saya):</label>
+            <input type="number" step="any" id="lonA" placeholder="106,15943580346821">
+        </div>
+    </div>
+
+    <div class="row" style="display: flex; gap: 10px;">
+        <div class="form-group" style="flex: 1;">
+            <label>Latitude B (Tujuan):</label>
+            <input type="number" step="any" id="latB" placeholder="-6.917464">
+        </div>
+        <div class="form-group" style="flex: 1;">
+            <label>Longitude B (Tujuan):</label>
+            <input type="number" step="any" id="lonB" placeholder="107.619123">
+        </div>
+    </div>
+
+    <button class="btn" style="background-color: #198754;" onclick="calculateAndDraw()">📐 Hitung Jarak & Tarik Garis</button>
+
+    <div class="result-box" id="result">
+        Jarak akan muncul di sini...
+    </div>
+
+    <div id="map"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    let map = L.map('map').setView([-6,331870716422985, 106,15943580346821], 10);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    let markerA, markerB, polyline;
+
+    function getLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(showPosition, showError, { enableHighAccuracy: true });
+        } else {
+            alert("Geolocation tidak didukung oleh browser Anda.");
+        }
+    }
+
+    function showPosition(position) {
+        document.getElementById('latA').value = position.coords.latitude;
+        document.getElementById('lonA').value = position.coords.longitude;
+        alert("Lokasi Anda berhasil ditemukan!");
+    }
+
+    function showError(error) {
+        alert("Gagal mengambil lokasi: " + error.message);
+    }
+
+    function haversineDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const radLat1 = lat1 * Math.PI / 180;
+        const radLat2 = lat2 * Math.PI / 180;
+
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                  Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(radLat1) * Math.cos(radLat2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        
+        return { km: R * c, meter: R * c * 1000 };
+    }
+
+    function calculateAndDraw() {
+        const latA = parseFloat(document.getElementById('latA').value);
+        const lonA = parseFloat(document.getElementById('lonA').value);
+        const latB = parseFloat(document.getElementById('latB').value);
+        const lonB = parseFloat(document.getElementById('lonB').value);
+
+        if (isNaN(latA) || isNaN(lonA) || isNaN(latB) || isNaN(lonB)) {
+            alert("Harap isi seluruh koordinat!");
+            return;
+        }
+
+        const distance = haversineDistance(latA, lonA, latB, lonB);
+        document.getElementById('result').innerHTML = `
+            📏 Jarak Garis Lurus:<br>
+            <span style="font-size: 1.2rem; color: #0d6efd;">${distance.meter.toFixed(2)} Meter</span> 
+            (${distance.km.toFixed(2)} Km)
+        `;
+
+        if (markerA) map.removeLayer(markerA);
+        if (markerB) map.removeLayer(markerB);
+        if (polyline) map.removeLayer(polyline);
+
+        markerA = L.marker([latA, lonA]).addTo(map).bindPopup("Titik A").openPopup();
+        markerB = L.marker([latB, lonB]).addTo(map).bindPopup("Titik B");
+
+        polyline = L.polyline([[latA, lonA], [latB, lonB]], {color: 'red', weight: 4}).addTo(map);
+        map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
+    }
+
+    // --- SCRIPT REGISTRASI SERVICE WORKER UNTUK FITUR PWA ---
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js').then(reg => {
+                console.log('Service Worker Registered!', reg);
+            }).catch(err => {
+                console.log('Service Worker Registration Failed!', err);
+            });
+        });
+    }
+</script>
+</body>
+</html>
