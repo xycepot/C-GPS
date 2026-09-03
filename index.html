@@ -2,60 +2,74 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkulator Jarak GPS - MonteBaok</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kalkulator Jarak GPS</title>
 
     <meta name="theme-color" content="#0d6efd">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="GPS Distance">
+    <meta name="apple-mobile-web-app-title" content="GPS Jarak">
     
     <link rel="manifest" href="manifest.json">
-    
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/854/854878.png">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/684/684908.png">
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/684/684908.png">
+
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #f4f6f9; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 15px; padding: 0; background-color: #f4f6f9; }
         .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #333; }
-        .btn { background-color: #0d6efd; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; width: 100%; font-size: 16px; margin-bottom: 15px; }
-        .btn:hover { background-color: #0b5ed7; }
+        h2 { text-align: center; color: #333; margin-top: 0; }
+        .btn { background-color: #0d6efd; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-size: 16px; font-weight: bold; margin-bottom: 15px; }
+        .btn:active { background-color: #0b5ed7; }
         .form-group { margin-bottom: 15px; }
-        label { font-weight: bold; display: block; margin-bottom: 5px; }
-        input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; font-size: 0.9rem; }
+        
+        /* Form Input khusus Keyboard HP (Support Minus & Titik) */
+        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; }
+        
         .result-box { background: #e9ecef; padding: 15px; border-radius: 8px; text-align: center; margin-top: 15px; font-weight: bold; color: #212529; }
-        #map { height: 350px; border-radius: 8px; margin-top: 15px; }
+        
+        /* KUNCI PERBAIKAN PETA: Ukuran pasti dan Z-Index */
+        #map { 
+            height: 350px; 
+            width: 100%; 
+            border-radius: 10px; 
+            margin-top: 15px; 
+            z-index: 1; 
+            background: #e5e3df; 
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>📍 Kalkulator Jarak GPS (Haversine)</h2>
+    <h2>📍 Kalkulator Jarak GPS</h2>
     
     <button class="btn" onclick="getLocation()">📡 Dapatkan Lokasi Saya Saat Ini</button>
 
-<div class="row" style="display: flex; gap: 10px;">
-    <div class="form-group" style="flex: 1;">
-        <label>Latitude A (Saya):</label>
-        <input type="text" inputmode="decimal" pattern="[0-9.-]*" id="latA" placeholder="Contoh: -6.200000">
+    <div style="display: flex; gap: 10px;">
+        <div class="form-group" style="flex: 1;">
+            <label>Latitude A (Saya):</label>
+            <input type="text" inputmode="decimal" pattern="[0-9.-]*" id="latA" placeholder="Contoh: -6.200000">
+        </div>
+        <div class="form-group" style="flex: 1;">
+            <label>Longitude A (Saya):</label>
+            <input type="text" inputmode="decimal" pattern="[0-9.-]*" id="lonA" placeholder="Contoh: 106.816666">
+        </div>
     </div>
-    <div class="form-group" style="flex: 1;">
-        <label>Longitude A (Saya):</label>
-        <input type="text" inputmode="decimal" pattern="[0-9.-]*" id="lonA" placeholder="Contoh: 106.816666">
-    </div>
-</div>
 
-<div class="row" style="display: flex; gap: 10px;">
-    <div class="form-group" style="flex: 1;">
-        <label>Latitude B (Tujuan):</label>
-        <input type="text" inputmode="decimal" pattern="[0-9.-]*" id="latB" placeholder="Contoh: -6.917464">
+    <div style="display: flex; gap: 10px;">
+        <div class="form-group" style="flex: 1;">
+            <label>Latitude B (Tujuan):</label>
+            <input type="text" inputmode="decimal" pattern="[0-9.-]*" id="latB" placeholder="Contoh: -6.917464">
+        </div>
+        <div class="form-group" style="flex: 1;">
+            <label>Longitude B (Tujuan):</label>
+            <input type="text" inputmode="decimal" pattern="[0-9.-]*" id="lonB" placeholder="Contoh: 107.619123">
+        </div>
     </div>
-    <div class="form-group" style="flex: 1;">
-        <label>Longitude B (Tujuan):</label>
-        <input type="text" inputmode="decimal" pattern="[0-9.-]*" id="lonB" placeholder="Contoh: 107.619123">
-    </div>
-</div>
 
     <button class="btn" style="background-color: #198754;" onclick="calculateAndDraw()">📐 Hitung Jarak & Tarik Garis</button>
 
@@ -67,13 +81,21 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-    let map = L.map('map').setView([-6,331870716422985, 106,15943580346821], 10);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap'
-    }).addTo(map);
 
-    let markerA, markerB, polyline;
+<script>
+    let map, markerA, markerB, polyline;
+
+    // Inisialisasi Peta saat DOM Siap
+    document.addEventListener("DOMContentLoaded", function() {
+        map = L.map('map').setView([-6.200000, 106.816666], 10);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        // Paksa render peta ulang agar ubin peta (tiles) dimuat sempurna di PWA HP
+        setTimeout(() => { map.invalidateSize(); }, 500);
+    });
 
     function getLocation() {
         if (navigator.geolocation) {
@@ -114,7 +136,7 @@
         const lonB = parseFloat(document.getElementById('lonB').value);
 
         if (isNaN(latA) || isNaN(lonA) || isNaN(latB) || isNaN(lonB)) {
-            alert("Harap isi seluruh koordinat!");
+            alert("Harap isi seluruh koordinat dengan benar!");
             return;
         }
 
@@ -134,16 +156,15 @@
 
         polyline = L.polyline([[latA, lonA], [latB, lonB]], {color: 'red', weight: 4}).addTo(map);
         map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
+
+        // Memastikan ukuran peta ter-update saat tombol ditekan
+        map.invalidateSize();
     }
 
-    // --- SCRIPT REGISTRASI SERVICE WORKER UNTUK FITUR PWA ---
+    // Registrasi Service Worker PWA
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js').then(reg => {
-                console.log('Service Worker Registered!', reg);
-            }).catch(err => {
-                console.log('Service Worker Registration Failed!', err);
-            });
+            navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
         });
     }
 </script>
